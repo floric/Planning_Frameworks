@@ -10,7 +10,7 @@ import static org.junit.Assert.*;
 
 public class SimpleSolverTest {
     @Test
-    public void checkSolution() {
+    public void testGetBestSolution() {
         ClassicalPlanningExample example = new ClassicalPlanningExample();
 
         ClassicalPlanningSolver solver = new ClassicalPlanningSolver();

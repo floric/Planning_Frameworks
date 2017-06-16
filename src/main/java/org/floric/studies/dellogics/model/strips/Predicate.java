@@ -13,13 +13,13 @@ public class Predicate {
         this.variables = Lists.newArrayList(variables);
     }
 
-    public Predicate(PredicateType type, boolean isNegated, String... variables) {
+    public Predicate(PredicateType type, boolean state, String... variables) {
         this.type = type;
-        this.isNegated = isNegated;
+        this.state = state;
         this.variables = Lists.newArrayList(variables);
     }
 
     private PredicateType type;
     private List<String> variables;
-    private boolean isNegated = false;
+    private boolean state = false;
 }

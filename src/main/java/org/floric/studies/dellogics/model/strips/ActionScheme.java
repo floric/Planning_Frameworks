@@ -1,6 +1,6 @@
 package org.floric.studies.dellogics.model.strips;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -15,37 +15,55 @@ public class ActionScheme {
     private Set<Predicate> preConditions;
     private Set<Predicate> effects;
 
-    public Set<InstancedPredicate> apply(Symbol... symbols) {
-        return apply(Lists.newArrayList(symbols));
-    }
+    public Set<InstancedPredicate> apply(List<Symbol> symbols, Set<InstancedPredicate> state) {
+        // check preconditions
+        if (!canApply(symbols, state)) {
+            throw new RuntimeException("Preconditions are not met. Can't be applied!");
+        }
 
-    public Set<InstancedPredicate> apply(List<Symbol> symbols) {
-        Map<String, Symbol> mappedSymbols = mapSymbolsToVariables(symbols);
-
+        // do additional tests to avoid human errors during modelling
         checkConditions(preConditions, predicate.getVariables());
         checkConditions(effects, predicate.getVariables());
-        checkVariableCount();
+        checkVariableCountOfPredicate();
+        checkSymbolsCountMatchingPredicate(symbols);
 
-        return effects.stream()
-                .map(effect -> {
-                    return new InstancedPredicate(
-                            effect.getType(),
-                            symbols,
-                            effect.isNegated()
-                    );
-                })
-                .collect(Collectors.toSet());
+        // collect all untouched predicate instances for output
+        Set<InstancedPredicate> untouchedPredicateInstances = getUntouchedPredicates(state, effects, symbols);
+
+        // modify matching predicate instances based on type and symbols
+        Set<InstancedPredicate> newAndModifiedPredicateInstances = modifyOrCreateMatchingInstancedPredicates(symbols, state, effects);
+
+        // combine combine to set and return
+        return Sets.union(untouchedPredicateInstances, newAndModifiedPredicateInstances);
     }
 
     public boolean canApply(List<Symbol> symbols, Set<InstancedPredicate> state) {
-        // check for matching argument count
-        Map<String, Symbol> mappedSymbols = mapSymbolsToVariables(symbols);
+        checkSymbolsCountMatchingPredicate(symbols);
 
         // go through all preconditions with these symbols assigned to variables and check if allowed
+        // allow if no preconditions exist at all
         return preConditions.stream()
-                .map(cond -> isConditionValid(state, cond, mappedSymbols))
+                .map(cond -> isConditionValid(state, cond, symbols))
                 .reduce((a, b) -> a && b)
                 .orElse(true);
+    }
+
+    private Set<InstancedPredicate> modifyOrCreateMatchingInstancedPredicates(List<Symbol> symbols, Set<InstancedPredicate> state, Set<Predicate> effects) {
+        return effects.stream()
+                .map(effect -> getInstancePredicateForEffect(symbols, state, effect))
+                .collect(Collectors.toSet());
+    }
+
+    private InstancedPredicate getInstancePredicateForEffect(List<Symbol> symbols, Set<InstancedPredicate> state, Predicate effect) {
+        Optional<InstancedPredicate> matchingStatePredicateFromCondition = getMatchingStatePredicateFromCondition(state, effect, symbols);
+        if(matchingStatePredicateFromCondition.isPresent()) {
+            InstancedPredicate matchingInstance = matchingStatePredicateFromCondition.get();
+            matchingInstance.setState(effect.isState());
+            return matchingInstance;
+        } else {
+            Map<String, Symbol> symbolMappings = mapSymbolsToVariables(symbols);
+            return new InstancedPredicate(effect.getType(), effect.isState(), mapVariablesToSymbol(effect.getVariables(), symbolMappings));
+        }
     }
 
     private Map<String, Symbol> mapSymbolsToVariables(List<Symbol> symbols, List<String> variableNames) {
@@ -54,8 +72,8 @@ public class ActionScheme {
         }
 
         return IntStream.range(0, symbols.size())
-                .mapToObj(a -> new Integer(a))
-                .collect(Collectors.toMap(index -> predicate.getVariables().get(index), index -> symbols.get(index)));
+                .mapToObj(a -> (a))
+                .collect(Collectors.toMap(index -> predicate.getVariables().get(index), symbols::get));
     }
 
     private Map<String, Symbol> mapSymbolsToVariables(List<Symbol> symbols) {
@@ -63,13 +81,20 @@ public class ActionScheme {
     }
 
     private List<Symbol> mapVariablesToSymbol(List<String> variables, Map<String, Symbol> mappedSymbols) {
-        return variables.stream().map(var -> mappedSymbols.get(var)).collect(Collectors.toList());
+        return variables.stream().map(mappedSymbols::get).collect(Collectors.toList());
     }
 
-    private void checkVariableCount() {
+    private void checkSymbolsCountMatchingPredicate(List<Symbol> symbols) {
+        boolean doArgumentsMatch = predicate.getVariables().size() == symbols.size();
+        if (!doArgumentsMatch) {
+            throw new RuntimeException("Arguments count doesn't match!");
+        }
+    }
+
+    private void checkVariableCountOfPredicate() {
         boolean isCorrectVariableCount = predicate.getVariables().size() == predicate.getType().getVariablesCount();
         if (!isCorrectVariableCount) {
-            throw new RuntimeException(String.format("Signature of % doesn't match correct variables count!", predicate.getType().getName()));
+            throw new RuntimeException(String.format("Signature of %s doesn't match correct variables count!", predicate.getType().getName()));
         }
     }
 
@@ -80,15 +105,55 @@ public class ActionScheme {
                 .orElse(false);
     }
 
-    private boolean isConditionValid(Set<InstancedPredicate> state, Predicate condition, Map<String, Symbol> mappedSymbols) {
-        // check if state contains condition at all
-        List<InstancedPredicate> matchedPredicatesWithSameType = state.stream()
-                .filter(predicate -> predicate.getType().equals(this.predicate.getType()))
-                .filter(predicate -> predicate.getSymbols().equals(mapVariablesToSymbol(condition.getVariables(), mappedSymbols)))
-                .filter(predicate -> predicate.isNegated() == condition.isNegated())
+    private boolean isConditionValid(Set<InstancedPredicate> state, Predicate condition, List<Symbol> symbols) {
+        return getMatchingStatePredicateFromCondition(state, condition, symbols).isPresent();
+    }
+
+    private Set<InstancedPredicate> getUntouchedPredicates(Set<InstancedPredicate> state, Set<Predicate> effects, List<Symbol> symbols) {
+        Set<InstancedPredicate> notUsedPredicates = state.stream()
+                .filter(instance -> !getMatchingEffectPredicateFromState(instance, effects).isPresent())
+                .collect(Collectors.toSet());
+
+        return notUsedPredicates;
+    }
+
+    private Optional<Predicate> getMatchingEffectPredicateFromState(InstancedPredicate predicateInstance, Set<Predicate> effects) {
+        Map<String, Symbol> mappedSymbols = mapSymbolsToVariables(predicateInstance.getSymbols());
+
+        // ignore negation as the state is modified!
+        List<Predicate> matchedPredicates = effects.stream()
+                .filter(effect -> effect.getType().equals(predicateInstance))
+                .filter(effect -> mapVariablesToSymbol(effect.getVariables(), mappedSymbols).equals(predicateInstance.getSymbols()))
                 .collect(Collectors.toList());
 
-        return matchedPredicatesWithSameType.size() == 1;
+        // maximum one predicate can match!
+        if (matchedPredicates.size() > 1) {
+            throw new RuntimeException("Multiple predicates with same signature found!");
+        } else if (matchedPredicates.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(matchedPredicates.get(0));
+    }
+
+    private Optional<InstancedPredicate> getMatchingStatePredicateFromCondition(Set<InstancedPredicate> state, Predicate condition, List<Symbol> symbols) {
+        Map<String, Symbol> mappedSymbols = mapSymbolsToVariables(symbols);
+
+        // get all matching predicates with same type, symbols and negation
+        List<InstancedPredicate> matchedPredicates = state.stream()
+                .filter(predicate -> predicate.getType().equals(this.predicate.getType()))
+                .filter(predicate -> predicate.getSymbols().equals(mapVariablesToSymbol(condition.getVariables(), mappedSymbols)))
+                .filter(predicate -> predicate.isState() == condition.isState())
+                .collect(Collectors.toList());
+
+        // maximum one predicate can match!
+        if (matchedPredicates.size() > 1) {
+            throw new RuntimeException("Multiple predicates with same signature found!");
+        } else if (matchedPredicates.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(matchedPredicates.get(0));
     }
 
     private void checkConditions(Set<Predicate> conditions, List<String> variableNames) {

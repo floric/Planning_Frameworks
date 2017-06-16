@@ -20,19 +20,19 @@ public class InstancedPredicate {
         this.symbols = symbols;
     }
 
-    public InstancedPredicate(PredicateType type, boolean isNegated, Symbol... symbols) {
+    public InstancedPredicate(PredicateType type, boolean state, Symbol... symbols) {
         this.type = type;
         this.symbols = Lists.newArrayList(symbols);
-        this.isNegated = isNegated;
+        this.state = state;
     }
 
-    public InstancedPredicate(PredicateType type, boolean isNegated, List<Symbol> symbols) {
+    public InstancedPredicate(PredicateType type, boolean state, List<Symbol> symbols) {
         this.type = type;
         this.symbols = symbols;
-        this.isNegated = isNegated;
+        this.state = state;
     }
 
     private PredicateType type;
     private List<Symbol> symbols;
-    private boolean isNegated = false;
+    private boolean state = false;
 }

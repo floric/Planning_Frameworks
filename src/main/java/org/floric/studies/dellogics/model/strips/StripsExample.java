@@ -1,5 +1,6 @@
 package org.floric.studies.dellogics.model.strips;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.floric.studies.dellogics.model.Example;
@@ -59,8 +60,6 @@ public class StripsExample implements Example {
                 Sets.newHashSet(new Predicate(has, "agt", "obj"), new Predicate(wrapped, false,"obj"), new Predicate(isAgent, "agt"), new Predicate(isObject, "obj")),
                 Sets.newHashSet(new Predicate(wrapped, "obj"))
         );
-
-        Set<InstancedPredicate> newState = goAction.apply(father, home, postOffice);
 
         // task
         Set<InstancedPredicate> startState = Sets.newHashSet(
