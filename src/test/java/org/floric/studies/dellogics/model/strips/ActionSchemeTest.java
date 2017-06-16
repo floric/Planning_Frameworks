@@ -69,8 +69,8 @@ public class ActionSchemeTest {
 
     @Test
     public void testApplyWithEffectsWithChangedInstancedPredicate() throws Exception {
-        Predicate isWrappedPredicate = new Predicate(isWrapped, "varA");
-        Predicate isPresentPredicate = new Predicate(isPresent, true,"varA");
+        Predicate isWrappedPredicate = new Predicate(isWrapped, false,"varA");
+        Predicate isPresentPredicate = new Predicate(isPresent,"varA");
         Symbol presentA = () -> "PresentA";
         Symbol presentB = () -> "PresentB";
         List<Symbol> usedSymbols = Lists.newArrayList(presentA);
@@ -82,12 +82,13 @@ public class ActionSchemeTest {
                 new InstancedPredicate(isPresent, presentB)
         );
 
-        scheme.setPreConditions(Sets.newHashSet(isPresentPredicate));
+        scheme.setPredicate(new Predicate(new PredicateType("WrapPresent", 1), "varA"));
+        scheme.setPreConditions(Sets.newHashSet(isPresentPredicate, isWrappedPredicate));
         scheme.setEffects(Sets.newHashSet(isWrappedPredicate));
 
         Set<InstancedPredicate> newState = scheme.apply(usedSymbols, state);
 
-        assertThat(newState.size(), is(2));
+        assertThat(newState.size(), is(state.size()));
 
         List<InstancedPredicate> changedIsWrappedInstance = newState.stream()
                 .filter(p -> p.getType().equals(isWrapped))
@@ -171,7 +172,7 @@ public class ActionSchemeTest {
         PredicateType predicateTypeA = new PredicateType("A", 1);
         Predicate predicateA = new Predicate(predicateTypeA,"varA");
 
-        Predicate preConditionPredicateA = new Predicate(predicateTypeA, true,"varA");
+        Predicate preConditionPredicateA = new Predicate(predicateTypeA, false,"varA");
         scheme = new ActionScheme(predicateA, Sets.newHashSet(preConditionPredicateA), Sets.newHashSet());
 
         scheme.apply(symbols, Sets.newHashSet(new InstancedPredicate(predicateTypeA, symbols)));

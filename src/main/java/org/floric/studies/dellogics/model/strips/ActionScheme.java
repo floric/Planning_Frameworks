@@ -120,7 +120,7 @@ public class ActionScheme {
     private Optional<Predicate> getMatchingEffectPredicateFromState(InstancedPredicate predicateInstance, Set<Predicate> effects) {
         Map<String, Symbol> mappedSymbols = mapSymbolsToVariables(predicateInstance.getSymbols());
 
-        // ignore negation as the state is modified!
+        // ignore negative state of effect as the state is modified!
         List<Predicate> matchedPredicates = effects.stream()
                 .filter(effect -> effect.getType().equals(predicateInstance))
                 .filter(effect -> mapVariablesToSymbol(effect.getVariables(), mappedSymbols).equals(predicateInstance.getSymbols()))
@@ -139,9 +139,9 @@ public class ActionScheme {
     private Optional<InstancedPredicate> getMatchingStatePredicateFromCondition(Set<InstancedPredicate> state, Predicate condition, List<Symbol> symbols) {
         Map<String, Symbol> mappedSymbols = mapSymbolsToVariables(symbols);
 
-        // get all matching predicates with same type, symbols and negation
+        // get all matching predicates with same type, symbols and conditions state
         List<InstancedPredicate> matchedPredicates = state.stream()
-                .filter(predicate -> predicate.getType().equals(this.predicate.getType()))
+                .filter(predicate -> predicate.getType().equals(condition.getType()))
                 .filter(predicate -> predicate.getSymbols().equals(mapVariablesToSymbol(condition.getVariables(), mappedSymbols)))
                 .filter(predicate -> predicate.isState() == condition.isState())
                 .collect(Collectors.toList());

@@ -34,5 +34,5 @@ public class InstancedPredicate {
 
     private PredicateType type;
     private List<Symbol> symbols;
-    private boolean state = false;
+    private boolean state = true;
 }

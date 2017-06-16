@@ -16,14 +16,14 @@ public class ClassicalPlanningSolver implements Solver {
         Set<State> goalStates = task.getGoalStates();
         State initialState = task.getInitialState();
 
-        List<List<Action>> solutions = tryFindSolution(initialState, goalStates, Lists.newArrayList(), Lists.newArrayList(), transitionFunctions);
+        List<List<Action>> solutions = tryFindSolutions(initialState, goalStates, Lists.newArrayList(), Lists.newArrayList(), transitionFunctions);
 
         solutions.sort(Comparator.comparing(List::size));
 
         return Optional.ofNullable(solutions.get(0));
     }
 
-    private List<List<Action>> tryFindSolution(State currentState, Set<State> goalStates, List<State> usedStates, List<Action> usedActions, Set<StateTransitionFunction> transitionFunctions) {
+    private List<List<Action>> tryFindSolutions(State currentState, Set<State> goalStates, List<State> usedStates, List<Action> usedActions, Set<StateTransitionFunction> transitionFunctions) {
         usedStates.add(currentState);
 
         List<StateTransitionFunction> possibleTransitions = getPossibleAndAllowedStateTransitions(currentState, usedStates, transitionFunctions);
@@ -38,7 +38,7 @@ public class ClassicalPlanningSolver implements Solver {
             if(goalStates.contains(transition.getNewState())) {
                 solutions.add(usedActionsForThisTransition);
             } else {
-                solutions.addAll(tryFindSolution(transition.getNewState(), goalStates, usedStatesForThisTransition, usedActionsForThisTransition, transitionFunctions));
+                solutions.addAll(tryFindSolutions(transition.getNewState(), goalStates, usedStatesForThisTransition, usedActionsForThisTransition, transitionFunctions));
             }
         }
 

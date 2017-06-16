@@ -21,5 +21,5 @@ public class Predicate {
 
     private PredicateType type;
     private List<String> variables;
-    private boolean state = false;
+    private boolean state = true;
 }

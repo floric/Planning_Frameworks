@@ -16,7 +16,7 @@ public class StripsSolverTest {
 
         StripsSolver solver = new StripsSolver();
         StripsPlanningTask task = example.createTask();
-        Optional<List<ActionWithSymbols>> solution = solver.getBestSolution(task);
+        // Optional<List<ActionWithSymbols>> solution = solver.getBestSolution(task);
 
         /*assertTrue(solution.isPresent());
         assertThat(solution.get().size(), is(4));
