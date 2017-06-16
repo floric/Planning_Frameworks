@@ -1,18 +1,18 @@
-# Implementations for different planning frameworks
+# Implementations of different planning frameworks
 
 The theory of this source code and it's used example is highly based on the following paper:
 
 ```Thomas Bolander: A Gentle Introduction to Epistemic Planning: The DEL Approach. M4M@ICLA 2017```
 
-It's a learning project for a course at the HTWK Leipzig and
+It's a learning project for an university course at the HTWK Leipzig and
 might be a good starting point for others to dive into planning frameworks as well.
 
 ## Planning frameworks
 
-* Classical planning
-* STRIPS planning
-* Propositional planning
-* Epistemic planning
+* Classical planning (100%)
+* STRIPS planning (70%)
+* Propositional planning (0%)
+* Epistemic planning (0%)
 
 ---
 
