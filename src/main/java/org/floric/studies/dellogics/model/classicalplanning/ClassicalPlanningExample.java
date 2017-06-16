@@ -1,10 +1,13 @@
 package org.floric.studies.dellogics.model.classicalplanning;
 
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.StringUtils;
 import org.floric.studies.dellogics.model.Example;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ClassicalPlanningExample implements Example {
 
@@ -12,10 +15,13 @@ public class ClassicalPlanningExample implements Example {
     public void run() {
         ClassicalPlanningTask task = createTask();
 
-        SimpleSolver solver = new SimpleSolver();
-        List<Action> solution = solver.getSolution(task);
+        ClassicalPlanningSolver solver = new ClassicalPlanningSolver();
+        Optional<List<Action>> solution = solver.getBestSolution(task);
 
-        solution.forEach(step -> System.out.println(step.getDescription()));
+        if (solution.isPresent()) {
+            List<String> actions = solution.get().stream().map(Action::getDescription).collect(Collectors.toList());
+            System.out.println("Solution: " + StringUtils.join(actions, ", "));
+        }
     }
 
     @Override
@@ -23,7 +29,7 @@ public class ClassicalPlanningExample implements Example {
         return "Classical planning with a state transition system.";
     }
 
-    private static ClassicalPlanningTask createTask() {
+    public ClassicalPlanningTask createTask() {
         // actions
         Action goToPOAction = () -> "Go to PO";
         Action goToHomeAction = () -> "Go home";
