@@ -28,13 +28,13 @@ public class ActionScheme {
         checkSymbolsCountMatchingPredicate(symbols);
 
         // collect all untouched predicate instances for output
-        Set<InstancedPredicate> untouchedPredicateInstances = getUntouchedPredicates(state, effects, symbols);
+        //Set<InstancedPredicate> untouchedPredicateInstances = getUntouchedPredicates(state, effects, symbols);
 
         // modify matching predicate instances based on type and symbols
         Set<InstancedPredicate> newAndModifiedPredicateInstances = modifyOrCreateMatchingInstancedPredicates(symbols, state, effects);
 
         // combine combine to set and return
-        return Sets.union(untouchedPredicateInstances, newAndModifiedPredicateInstances);
+        return Sets.union(state, newAndModifiedPredicateInstances);
     }
 
     public boolean canApply(List<Symbol> symbols, Set<InstancedPredicate> state) {
@@ -110,15 +110,13 @@ public class ActionScheme {
     }
 
     private Set<InstancedPredicate> getUntouchedPredicates(Set<InstancedPredicate> state, Set<Predicate> effects, List<Symbol> symbols) {
-        Set<InstancedPredicate> notUsedPredicates = state.stream()
-                .filter(instance -> !getMatchingEffectPredicateFromState(instance, effects).isPresent())
+        return state.stream()
+                .filter(instance -> !getMatchingEffectPredicateFromState(instance, effects, symbols).isPresent())
                 .collect(Collectors.toSet());
-
-        return notUsedPredicates;
     }
 
-    private Optional<Predicate> getMatchingEffectPredicateFromState(InstancedPredicate predicateInstance, Set<Predicate> effects) {
-        Map<String, Symbol> mappedSymbols = mapSymbolsToVariables(predicateInstance.getSymbols());
+    private Optional<Predicate> getMatchingEffectPredicateFromState(InstancedPredicate predicateInstance, Set<Predicate> effects, List<Symbol> symbols) {
+        Map<String, Symbol> mappedSymbols = mapSymbolsToVariables(symbols);
 
         // ignore negative state of effect as the state is modified!
         List<Predicate> matchedPredicates = effects.stream()

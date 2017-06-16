@@ -45,13 +45,13 @@ public class StripsExample implements Example {
         ActionScheme goAction = new ActionScheme(
                 new Predicate(go, "agt", "from", "to"),
                 Sets.newHashSet(new Predicate(at, "agt", "from"), new Predicate(isAgent, "agt"), new Predicate(isLocation, "from"), new Predicate(isLocation, "to")),
-                Sets.newHashSet(new Predicate(at, "agt", "to"), new Predicate(at, true, "agt", "from"))
+                Sets.newHashSet(new Predicate(at, "agt", "to"), new Predicate(at, false, "agt", "from"))
         );
 
         ActionScheme pickUpAction = new ActionScheme(
                 new Predicate(pickUp, "agt", "obj", "from"),
                 Sets.newHashSet(new Predicate(at, "agt", "from"), new Predicate(at, "obj", "from"), new Predicate(has, false, "agt", "obj"), new Predicate(isAgent, "agt"), new Predicate(isObject, "obj"), new Predicate(isLocation, "from")),
-                Sets.newHashSet(new Predicate(has, "agt", "obj"), new Predicate(has, true, "obj", "from"))
+                Sets.newHashSet(new Predicate(has, "agt", "obj"), new Predicate(at, false, "obj", "from"))
         );
 
         ActionScheme wrapAction = new ActionScheme(
@@ -64,6 +64,8 @@ public class StripsExample implements Example {
         Set<InstancedPredicate> startState = Sets.newHashSet(
                 new InstancedPredicate(at, father, home),
                 new InstancedPredicate(at, present, postOffice),
+                new InstancedPredicate(has, false, father, present),
+                new InstancedPredicate(wrapped, false, present),
                 new InstancedPredicate(isAgent, father),
                 new InstancedPredicate(isLocation, home),
                 new InstancedPredicate(isLocation, postOffice),
@@ -77,12 +79,6 @@ public class StripsExample implements Example {
         Set<ActionScheme> actions = Sets.newHashSet(goAction, pickUpAction, wrapAction);
 
         return new StripsPlanningTask(actions, startState, goalState);
-    }
-
-    private void printState(Set<InstancedPredicate> state) {
-        state.forEach(s ->
-                System.out.println(String.format("%s: %s", s.getType().getName(), StringUtils.join(s.getSymbols().stream().map(i -> i.getName()).collect(Collectors.toList()), ",")))
-        );
     }
 
     @Override
