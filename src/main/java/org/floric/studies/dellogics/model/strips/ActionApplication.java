@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 @AllArgsConstructor
-public class ActionWithSymbols {
+public class ActionApplication {
     private ActionScheme actionScheme;
     private List<Symbol> symbols;
 }

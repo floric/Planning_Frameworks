@@ -18,6 +18,10 @@ public class ClassicalPlanningSolver implements Solver {
 
         List<List<Action>> solutions = tryFindSolutions(initialState, goalStates, Lists.newArrayList(), Lists.newArrayList(), transitionFunctions);
 
+        if (solutions.isEmpty()) {
+            return Optional.empty();
+        }
+
         solutions.sort(Comparator.comparing(List::size));
 
         return Optional.ofNullable(solutions.get(0));

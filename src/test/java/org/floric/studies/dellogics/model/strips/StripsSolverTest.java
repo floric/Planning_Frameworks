@@ -16,13 +16,13 @@ public class StripsSolverTest {
 
         StripsSolver solver = new StripsSolver();
         StripsPlanningTask task = example.createTask();
-        // Optional<List<ActionWithSymbols>> solution = solver.getBestSolution(task);
+        // Optional<List<ActionApplication>> solution = solver.getBestSolution(task);
 
         /*assertTrue(solution.isPresent());
         assertThat(solution.get().size(), is(4));
 
         Set<InstancedPredicate> currentState = task.getStartingState();
-        for(ActionWithSymbols action: solution.get()) {
+        for(ActionApplication action: solution.get()) {
 
         }
 

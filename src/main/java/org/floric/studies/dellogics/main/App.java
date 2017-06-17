@@ -18,7 +18,7 @@ public class App {
 
             example.run();
 
-            System.out.println("Successfull finished!\n");
+            System.out.println();
         });
     }
 }

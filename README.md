@@ -6,11 +6,13 @@ The theory of this source code and it's used example is highly based on the foll
 
 It's a learning project for an university course at the HTWK Leipzig and
 might be a good starting point for others to dive into planning frameworks as well.
+The code could be a lot cleaner at a lot places, including the tests.
+But currently this is only for learning purposes.
 
 ## Planning frameworks
 
 * Classical planning (100%)
-* STRIPS planning (70%)
+* STRIPS planning (100%)
 * Propositional planning (0%)
 * Epistemic planning (0%)
 

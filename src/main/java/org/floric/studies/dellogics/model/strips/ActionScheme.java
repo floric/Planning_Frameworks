@@ -3,6 +3,9 @@ package org.floric.studies.dellogics.model.strips;
 import com.google.common.collect.Sets;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.floric.studies.dellogics.model.strips.exceptions.InvalidPredicateException;
+import org.floric.studies.dellogics.model.strips.exceptions.InvalidPredicateSymbolsException;
+import org.floric.studies.dellogics.model.strips.exceptions.NoNegPredicatesAllowedException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,15 +29,28 @@ public class ActionScheme {
         checkConditions(effects, predicate.getVariables());
         checkVariableCountOfPredicate();
         checkSymbolsCountMatchingPredicate(symbols);
+        checkAllInstancePredicatesArePositive(state);
 
         // collect all untouched predicate instances for output
-        //Set<InstancedPredicate> untouchedPredicateInstances = getUntouchedPredicates(state, effects, symbols);
+        Set<InstancedPredicate> untouchedPredicateInstances = getUntouchedPredicates(state, effects, symbols);
 
         // modify matching predicate instances based on type and symbols
         Set<InstancedPredicate> newAndModifiedPredicateInstances = modifyOrCreateMatchingInstancedPredicates(symbols, state, effects);
 
+        // remove negative states as all nonexisting states are negative
+        newAndModifiedPredicateInstances = newAndModifiedPredicateInstances.stream()
+                .filter(instancedPredicate -> instancedPredicate.isState())
+                .collect(Collectors.toSet());
+
         // combine combine to set and return
-        return Sets.union(state, newAndModifiedPredicateInstances);
+        return Sets.union(untouchedPredicateInstances, newAndModifiedPredicateInstances);
+    }
+
+    private void checkAllInstancePredicatesArePositive(Set<InstancedPredicate> state) {
+        long negativePredicatesCount = state.stream().filter(instancedPredicate -> !instancedPredicate.isState()).count();
+        if (negativePredicatesCount > 0) {
+            throw new NoNegPredicatesAllowedException();
+        }
     }
 
     public boolean canApply(List<Symbol> symbols, Set<InstancedPredicate> state) {
@@ -56,6 +72,7 @@ public class ActionScheme {
 
     private InstancedPredicate getInstancePredicateForEffect(List<Symbol> symbols, Set<InstancedPredicate> state, Predicate effect) {
         Optional<InstancedPredicate> matchingStatePredicateFromCondition = getMatchingStatePredicateFromCondition(state, effect, symbols);
+
         if(matchingStatePredicateFromCondition.isPresent()) {
             InstancedPredicate matchingInstance = matchingStatePredicateFromCondition.get();
             matchingInstance.setState(effect.isState());
@@ -68,7 +85,7 @@ public class ActionScheme {
 
     private Map<String, Symbol> mapSymbolsToVariables(List<Symbol> symbols, List<String> variableNames) {
         if (symbols.size() != variableNames.size()) {
-            throw new RuntimeException("Number of symbols doesn't match signature");
+            throw new InvalidPredicateSymbolsException("Number of symbols doesn't match signature");
         }
 
         return IntStream.range(0, symbols.size())
@@ -87,14 +104,14 @@ public class ActionScheme {
     private void checkSymbolsCountMatchingPredicate(List<Symbol> symbols) {
         boolean doArgumentsMatch = predicate.getVariables().size() == symbols.size();
         if (!doArgumentsMatch) {
-            throw new RuntimeException("Arguments count doesn't match!");
+            throw new InvalidPredicateException("Arguments count doesn't match!");
         }
     }
 
     private void checkVariableCountOfPredicate() {
         boolean isCorrectVariableCount = predicate.getVariables().size() == predicate.getType().getVariablesCount();
         if (!isCorrectVariableCount) {
-            throw new RuntimeException(String.format("Signature of %s doesn't match correct variables count!", predicate.getType().getName()));
+            throw new InvalidPredicateException(String.format("Signature of %s doesn't match correct variables count!", predicate.getType().getName()));
         }
     }
 
@@ -106,22 +123,25 @@ public class ActionScheme {
     }
 
     private boolean isConditionValid(Set<InstancedPredicate> state, Predicate condition, List<Symbol> symbols) {
-        return getMatchingStatePredicateFromCondition(state, condition, symbols).isPresent();
+        boolean foundMatchingPredicate = getMatchingStatePredicateFromCondition(state, condition, symbols).isPresent();
+
+        // for negative conditions no condition should be found, otherwise the opposite
+        return condition.isState() == foundMatchingPredicate;
     }
 
     private Set<InstancedPredicate> getUntouchedPredicates(Set<InstancedPredicate> state, Set<Predicate> effects, List<Symbol> symbols) {
         return state.stream()
-                .filter(instance -> !getMatchingEffectPredicateFromState(instance, effects, symbols).isPresent())
+                .filter(instance -> !getMatchingPredicateFromState(instance, effects, symbols).isPresent())
                 .collect(Collectors.toSet());
     }
 
-    private Optional<Predicate> getMatchingEffectPredicateFromState(InstancedPredicate predicateInstance, Set<Predicate> effects, List<Symbol> symbols) {
+    private Optional<Predicate> getMatchingPredicateFromState(InstancedPredicate predicateInstance, Set<Predicate> predicates, List<Symbol> symbols) {
         Map<String, Symbol> mappedSymbols = mapSymbolsToVariables(symbols);
 
-        // ignore negative state of effect as the state is modified!
-        List<Predicate> matchedPredicates = effects.stream()
-                .filter(effect -> effect.getType().equals(predicateInstance))
-                .filter(effect -> mapVariablesToSymbol(effect.getVariables(), mappedSymbols).equals(predicateInstance.getSymbols()))
+        List<Predicate> matchedPredicates = predicates.stream()
+                .filter(predicate -> predicate.getType().equals(predicateInstance.getType()))
+                .filter(predicate -> mapVariablesToSymbol(predicate.getVariables(), mappedSymbols).equals(predicateInstance.getSymbols()))
+                .filter(predicate -> predicate.isState() != predicateInstance.isState())
                 .collect(Collectors.toList());
 
         // maximum one predicate can match!
@@ -159,7 +179,7 @@ public class ActionScheme {
             boolean isValid = checkParameterNames(con, variableNames);
 
             if (!isValid) {
-                throw new RuntimeException(String.format("Condition %s in %s has invalid types!", con.getType().getName(), predicate.getType().getName()));
+                throw new InvalidPredicateException(String.format("Condition %s in %s has invalid types!", con.getType().getName(), predicate.getType().getName()));
             }
         });
     }

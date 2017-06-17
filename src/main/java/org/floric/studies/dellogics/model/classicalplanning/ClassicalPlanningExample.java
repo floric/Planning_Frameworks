@@ -19,14 +19,17 @@ public class ClassicalPlanningExample implements Example {
         Optional<List<Action>> solution = solver.getBestSolution(task);
 
         if (solution.isPresent()) {
-            List<String> actions = solution.get().stream().map(Action::getDescription).collect(Collectors.toList());
+            List<String> actions = solution.get().stream()
+                    .map(Action::getDescription)
+                    .collect(Collectors.toList());
+
             System.out.println("Solution: " + StringUtils.join(actions, ", "));
         }
     }
 
     @Override
     public String getDescription() {
-        return "Classical planning with a state transition system.";
+        return "Classical planning";
     }
 
     public ClassicalPlanningTask createTask() {

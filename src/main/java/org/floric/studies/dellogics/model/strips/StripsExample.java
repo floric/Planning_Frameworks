@@ -1,14 +1,12 @@
 package org.floric.studies.dellogics.model.strips;
 
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.StringUtils;
 import org.floric.studies.dellogics.model.Example;
 
 import java.lang.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class StripsExample implements Example {
 
@@ -17,19 +15,16 @@ public class StripsExample implements Example {
         StripsPlanningTask task = createTask();
 
         StripsSolver solver = new StripsSolver();
-        Optional<List<ActionWithSymbols>> solution = solver.getBestSolution(task);
+        Optional<List<ActionApplication>> solution = solver.getBestSolution(task);
 
-        if (solution.isPresent()) {
-            List<String> actions = solution.get().stream().map(actionScheme -> actionScheme.getActionScheme().getPredicate().getType().getName()).collect(Collectors.toList());
-            System.out.println("Solution: " + StringUtils.join(actions, ", "));
-        }
+        solution.ifPresent(StripsSolver::printSolution);
     }
 
     public StripsPlanningTask createTask() {
-        Symbol father = () -> "Father";
-        Symbol present = () -> "Present";
-        Symbol postOffice = () -> "Postoffice";
-        Symbol home = () -> "Home";
+        Symbol father = new Symbol("Father");
+        Symbol present = new Symbol("Present");
+        Symbol postOffice = new Symbol("Postoffice");
+        Symbol home = new Symbol("Home");
 
         PredicateType at = new PredicateType("At", 2);
         PredicateType has = new PredicateType("Has", 2);
@@ -64,8 +59,6 @@ public class StripsExample implements Example {
         Set<InstancedPredicate> startState = Sets.newHashSet(
                 new InstancedPredicate(at, father, home),
                 new InstancedPredicate(at, present, postOffice),
-                new InstancedPredicate(has, false, father, present),
-                new InstancedPredicate(wrapped, false, present),
                 new InstancedPredicate(isAgent, father),
                 new InstancedPredicate(isLocation, home),
                 new InstancedPredicate(isLocation, postOffice),

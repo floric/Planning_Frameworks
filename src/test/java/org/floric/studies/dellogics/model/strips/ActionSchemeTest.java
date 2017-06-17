@@ -2,6 +2,8 @@ package org.floric.studies.dellogics.model.strips;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.floric.studies.dellogics.model.strips.exceptions.InvalidPredicateException;
+import org.floric.studies.dellogics.model.strips.exceptions.NoNegPredicatesAllowedException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -15,7 +17,7 @@ import static org.junit.Assert.*;
 public class ActionSchemeTest {
 
     private ActionScheme scheme;
-    private List<Symbol> symbols = Lists.newArrayList((Symbol) () -> "TestSymbol");
+    private List<Symbol> symbols = Lists.newArrayList(new Symbol("TestSymbol"));
     private PredicateType predicateTypeA = new PredicateType("ActionToTest", 1);
     private PredicateType predicateTypeB = new PredicateType("ActionToTest2", 1);
     private Predicate predicateA = new Predicate(predicateTypeA, "varA");
@@ -38,9 +40,9 @@ public class ActionSchemeTest {
 
     @Test
     public void testApplyWithNoEffects() throws Exception {
-        List<Symbol> customSymbols = Lists.newArrayList(() -> "MainSymbol");
+        List<Symbol> customSymbols = Lists.newArrayList(new Symbol("MainSymbol"));
         InstancedPredicate matchingConditionInstance = new InstancedPredicate(predicateTypeA, customSymbols);
-        InstancedPredicate unchangedInstance = new InstancedPredicate(predicateTypeB, () -> "OtherSymbol");
+        InstancedPredicate unchangedInstance = new InstancedPredicate(predicateTypeB, new Symbol("OtherSymbol"));
         Set<InstancedPredicate> state = Sets.newHashSet(matchingConditionInstance, unchangedInstance);
         scheme.setPreConditions(Sets.newHashSet(new Predicate(predicateTypeA,"varA")));
 
@@ -69,42 +71,33 @@ public class ActionSchemeTest {
 
     @Test
     public void testApplyWithEffectsWithChangedInstancedPredicate() throws Exception {
-        Predicate isWrappedPredicate = new Predicate(isWrapped, false,"varA");
-        Predicate isPresentPredicate = new Predicate(isPresent,"varA");
-        Symbol presentA = () -> "PresentA";
-        Symbol presentB = () -> "PresentB";
+        Predicate isWrappedPredicateCondition = new Predicate(isWrapped, false, "varA");
+        Predicate isWrappedPredicateEffect = new Predicate(isWrapped, "varA");
+        Predicate isPresentPredicate = new Predicate(isPresent, "varA");
+        Symbol presentA = new Symbol("PresentA");
+        Symbol presentB = new Symbol("PresentB");
         List<Symbol> usedSymbols = Lists.newArrayList(presentA);
-        InstancedPredicate unchangedInstance = new InstancedPredicate(isWrapped, false, presentB);
         Set<InstancedPredicate> state = Sets.newHashSet(
-                new InstancedPredicate(isWrapped, false, presentA),
-                unchangedInstance,
                 new InstancedPredicate(isPresent, presentA),
                 new InstancedPredicate(isPresent, presentB)
         );
 
         scheme.setPredicate(new Predicate(new PredicateType("WrapPresent", 1), "varA"));
-        scheme.setPreConditions(Sets.newHashSet(isPresentPredicate, isWrappedPredicate));
-        scheme.setEffects(Sets.newHashSet(isWrappedPredicate));
+        scheme.setPreConditions(Sets.newHashSet(isPresentPredicate, isWrappedPredicateCondition));
+        scheme.setEffects(Sets.newHashSet(isWrappedPredicateEffect));
 
         Set<InstancedPredicate> newState = scheme.apply(usedSymbols, state);
 
-        assertThat(newState.size(), is(state.size()));
+        assertThat(newState.size(), is(state.size() + 1));
 
-        List<InstancedPredicate> changedIsWrappedInstance = newState.stream()
+        List<InstancedPredicate> addedIsWrappedInstance = newState.stream()
                 .filter(p -> p.getType().equals(isWrapped))
                 .filter(p -> p.getSymbols().contains(presentA))
                 .collect(Collectors.toList());
-        assertFalse(changedIsWrappedInstance.isEmpty());
-        assertTrue(changedIsWrappedInstance.get(0).getType().equals(isWrapped));
-        assertFalse(changedIsWrappedInstance.get(0).isState());
-        assertTrue(changedIsWrappedInstance.get(0).getSymbols().equals(usedSymbols));
-
-        List<InstancedPredicate> unchangedIsWrappedInstance = newState.stream()
-                .filter(p -> p.getType().equals(isWrapped))
-                .filter(p -> p.getSymbols().contains(presentB))
-                .collect(Collectors.toList());
-        assertFalse(unchangedIsWrappedInstance.isEmpty());
-        assertTrue(unchangedIsWrappedInstance.get(0).equals(unchangedInstance));
+        assertFalse(addedIsWrappedInstance.isEmpty());
+        assertTrue(addedIsWrappedInstance.get(0).getType().equals(isWrapped));
+        assertTrue(addedIsWrappedInstance.get(0).isState());
+        assertTrue(addedIsWrappedInstance.get(0).getSymbols().equals(usedSymbols));
     }
 
     @Test
@@ -127,16 +120,16 @@ public class ActionSchemeTest {
     public void testCanApplyWithInvalidPreConditions() throws Exception {
         scheme.setPreConditions(Sets.newHashSet(predicateA));
         assertFalse(scheme.canApply(symbols, Sets.newHashSet(new InstancedPredicate(predicateTypeA))));
-        assertFalse(scheme.canApply(symbols, Sets.newHashSet(new InstancedPredicate(predicateTypeA, () -> "Something else"), new InstancedPredicate(predicateTypeB))));
+        assertFalse(scheme.canApply(symbols, Sets.newHashSet(new InstancedPredicate(predicateTypeA, new Symbol("Something else")), new InstancedPredicate(predicateTypeB))));
     }
 
     @Test(expected = RuntimeException.class)
     public void testCanApplyWithNonMatchingArgumentsCount() throws Exception {
-        symbols.add(() -> "Added another symbol");
+        symbols.add(new Symbol("AddedSymbol"));
         scheme.canApply(symbols, Sets.newHashSet(new InstancedPredicate(predicateTypeA, true, symbols)));
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = InvalidPredicateException.class)
     public void testApplyWithInvalidPredicate() {
         PredicateType predicateTypeA = new PredicateType("A", 2);
         Predicate predicateA = new Predicate(predicateTypeA, "varA");
@@ -145,7 +138,7 @@ public class ActionSchemeTest {
         scheme.apply(Lists.newArrayList(), Sets.newHashSet());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = InvalidPredicateException.class)
     public void testApplyWithInvalidPreConditionsPredicateParameterCount() {
         PredicateType predicateTypeA = new PredicateType("A", 1);
         Predicate predicateA = new Predicate(predicateTypeA, "varA");
@@ -156,7 +149,7 @@ public class ActionSchemeTest {
         scheme.apply(Lists.newArrayList(), Sets.newHashSet());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = InvalidPredicateException.class)
     public void testApplyWithInvalidPreConditionsPredicateParameterName() {
         PredicateType predicateTypeA = new PredicateType("A", 1);
         Predicate predicateA = new Predicate(predicateTypeA, "varA");
@@ -167,7 +160,7 @@ public class ActionSchemeTest {
         scheme.apply(Lists.newArrayList(), Sets.newHashSet());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testApplyWithInvalidPreConditionsWithNegation() {
         PredicateType predicateTypeA = new PredicateType("A", 1);
         Predicate predicateA = new Predicate(predicateTypeA,"varA");
@@ -178,7 +171,7 @@ public class ActionSchemeTest {
         scheme.apply(symbols, Sets.newHashSet(new InstancedPredicate(predicateTypeA, symbols)));
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = InvalidPredicateException.class)
     public void testApplyWithInvalidEffectsPredicateParameterName() {
         PredicateType predicateTypeA = new PredicateType("A", 1);
         Predicate predicateA = new Predicate(predicateTypeA, "varA");
@@ -189,7 +182,7 @@ public class ActionSchemeTest {
         scheme.apply(Lists.newArrayList(), Sets.newHashSet());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = InvalidPredicateException.class)
     public void testApplyWithInvalidEffectsPredicateParameterCount() {
         PredicateType predicateTypeA = new PredicateType("A", 1);
         Predicate predicateA = new Predicate(predicateTypeA, "varA");
@@ -198,5 +191,29 @@ public class ActionSchemeTest {
         scheme = new ActionScheme(predicateA, Sets.newHashSet(), Sets.newHashSet(effectsPredicateA));
 
         scheme.apply(Lists.newArrayList(), Sets.newHashSet());
+    }
+
+    @Test
+    public void testApplyWithoutChange() {
+        PredicateType isKnownType = new PredicateType("IsKnown", 1);
+        Predicate isKnown = new Predicate(isKnownType, "varA");
+
+        Symbol elemInstance = new Symbol("ElemInstance");
+        Set<InstancedPredicate> oldState = Sets.newHashSet(new InstancedPredicate(isKnownType, elemInstance));
+
+        scheme.setEffects(Sets.newHashSet(isKnown));
+        Set<InstancedPredicate> newState = scheme.apply(Lists.newArrayList(elemInstance), oldState);
+
+        assertThat(newState.size(), is(1));
+    }
+
+    @Test(expected = NoNegPredicatesAllowedException.class)
+    public void testApplyWithNegativeStatePredicatesNotAllowed() {
+        PredicateType isKnownType = new PredicateType("IsKnown", 1);
+
+        Symbol elemInstance = new Symbol("ElemInstance");
+        Set<InstancedPredicate> oldState = Sets.newHashSet(new InstancedPredicate(isKnownType, false, elemInstance));
+
+        scheme.apply(Lists.newArrayList(elemInstance), oldState);
     }
 }
