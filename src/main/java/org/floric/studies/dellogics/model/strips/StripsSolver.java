@@ -76,7 +76,7 @@ public class StripsSolver implements Solver {
         return solutions;
     }
 
-    private boolean isContainingGoalState(Set<InstancedPredicate> state, Set<InstancedPredicate> goalState) {
+    public static boolean isContainingGoalState(Set<InstancedPredicate> state, Set<InstancedPredicate> goalState) {
         return goalState.stream()
                 .map(state::contains)
                 .reduce((a, b) -> a && b)

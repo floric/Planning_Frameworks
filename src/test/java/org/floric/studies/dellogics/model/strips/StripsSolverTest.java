@@ -16,16 +16,20 @@ public class StripsSolverTest {
 
         StripsSolver solver = new StripsSolver();
         StripsPlanningTask task = example.createTask();
-        // Optional<List<ActionApplication>> solution = solver.getBestSolution(task);
 
-        /*assertTrue(solution.isPresent());
+        Optional<List<ActionApplication>> solution = solver.getBestSolution(task);
+
+        assertTrue(solution.isPresent());
         assertThat(solution.get().size(), is(4));
 
         Set<InstancedPredicate> currentState = task.getStartingState();
         for(ActionApplication action: solution.get()) {
+            ActionScheme actionScheme = action.getActionScheme();
+            List<Symbol> symbols = action.getSymbols();
 
+            currentState = actionScheme.apply(symbols, currentState);
         }
 
-        assertTrue(task.getGoalFormula().equals(currentState));*/
+        assertTrue(StripsSolver.isContainingGoalState(currentState, task.getGoalFormula()));
     }
 }
